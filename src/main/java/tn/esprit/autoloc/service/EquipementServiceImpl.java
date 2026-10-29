@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tn.esprit.autoloc.domain.Equipement;
+import tn.esprit.autoloc.exception.ResourceNotFoundException;
 import tn.esprit.autoloc.repository.IEquipementRepository;
 
 import java.util.List;
@@ -18,40 +19,51 @@ public class EquipementServiceImpl implements IEquipementService {
     private final IEquipementRepository equipementRepository;
 
     @Override
+    public Equipement create(Equipement equipement) {
+        log.info("Création d'un nouvel équipement");
+        if (equipement.getIdEquipement() != null) {
+            throw new IllegalArgumentException("L'identifiant doit être null lors de la création d'un équipement");
+        }
+        validerEquipement(equipement);
+        return equipementRepository.save(equipement);
+    }
+
+    @Override
     @Transactional(readOnly = true)
-    public List<Equipement> getAllEquipements() {
+    public Equipement findById(Long id) {
+        log.info("Recherche de l'équipement avec l'ID : {}", id);
+        return equipementRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Equipement", id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Equipement> findAll() {
         log.info("Récupération de tous les équipements");
         return equipementRepository.findAll();
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Equipement getEquipementById(Long id) {
-        log.info("Recherche de l'équipement avec l'ID : {}", id);
-        return equipementRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Équipement introuvable avec l'ID : " + id));
-    }
-
-    @Override
-    public Equipement addEquipement(Equipement equipement) {
-        log.info("Ajout d'un nouvel équipement : {}", equipement.getLibelle());
-        return equipementRepository.save(equipement);
-    }
-
-    @Override
-    public Equipement updateEquipement(Long id, Equipement equipement) {
+    public Equipement update(Long id, Equipement equipement) {
         log.info("Mise à jour de l'équipement avec l'ID : {}", id);
-        Equipement existingEquipement = getEquipementById(id);
-        existingEquipement.setLibelle(equipement.getLibelle());
-        return equipementRepository.save(existingEquipement);
+        validerEquipement(equipement);
+        Equipement existant = findById(id);
+        existant.setLibelle(equipement.getLibelle());
+        return equipementRepository.save(existant);
     }
 
     @Override
-    public void deleteEquipement(Long id) {
+    public void deleteById(Long id) {
         log.info("Suppression de l'équipement avec l'ID : {}", id);
         if (!equipementRepository.existsById(id)) {
-            throw new IllegalArgumentException("Impossible de supprimer : équipement introuvable avec l'ID : " + id);
+            throw new ResourceNotFoundException("Equipement", id);
         }
         equipementRepository.deleteById(id);
+    }
+
+    private void validerEquipement(Equipement equipement) {
+        if (equipement.getLibelle() == null || equipement.getLibelle().isBlank()) {
+            throw new IllegalArgumentException("Le libellé de l'équipement est obligatoire");
+        }
     }
 }

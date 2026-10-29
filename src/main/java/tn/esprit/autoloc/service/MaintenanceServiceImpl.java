@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tn.esprit.autoloc.domain.Maintenance;
+import tn.esprit.autoloc.exception.ResourceNotFoundException;
 import tn.esprit.autoloc.repository.IMaintenanceRepository;
 
 import java.util.List;
@@ -18,43 +19,57 @@ public class MaintenanceServiceImpl implements IMaintenanceService {
     private final IMaintenanceRepository maintenanceRepository;
 
     @Override
+    public Maintenance create(Maintenance maintenance) {
+        log.info("Création d'une nouvelle maintenance");
+        if (maintenance.getIdMaintenance() != null) {
+            throw new IllegalArgumentException("L'identifiant doit être null lors de la création d'une maintenance");
+        }
+        validerMaintenance(maintenance);
+        return maintenanceRepository.save(maintenance);
+    }
+
+    @Override
     @Transactional(readOnly = true)
-    public List<Maintenance> getAllMaintenances() {
+    public Maintenance findById(Long id) {
+        log.info("Recherche de la maintenance avec l'ID : {}", id);
+        return maintenanceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Maintenance", id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Maintenance> findAll() {
         log.info("Récupération de toutes les maintenances");
         return maintenanceRepository.findAll();
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Maintenance getMaintenanceById(Long id) {
-        log.info("Recherche de la maintenance avec l'ID : {}", id);
-        return maintenanceRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Maintenance introuvable avec l'ID : " + id));
-    }
-
-    @Override
-    public Maintenance addMaintenance(Maintenance maintenance) {
-        log.info("Ajout d'une nouvelle maintenance débutant le : {}", maintenance.getDateDebut());
-        return maintenanceRepository.save(maintenance);
-    }
-
-    @Override
-    public Maintenance updateMaintenance(Long id, Maintenance maintenance) {
+    public Maintenance update(Long id, Maintenance maintenance) {
         log.info("Mise à jour de la maintenance avec l'ID : {}", id);
-        Maintenance existingMaintenance = getMaintenanceById(id);
-        existingMaintenance.setDateDebut(maintenance.getDateDebut());
-        existingMaintenance.setDateFin(maintenance.getDateFin());
-        existingMaintenance.setDescription(maintenance.getDescription());
-        existingMaintenance.setVehicule(maintenance.getVehicule());
-        return maintenanceRepository.save(existingMaintenance);
+        validerMaintenance(maintenance);
+        Maintenance existant = findById(id);
+        existant.setDateDebut(maintenance.getDateDebut());
+        existant.setDateFin(maintenance.getDateFin());
+        existant.setDescription(maintenance.getDescription());
+        existant.setVehicule(maintenance.getVehicule());
+        return maintenanceRepository.save(existant);
     }
 
     @Override
-    public void deleteMaintenance(Long id) {
+    public void deleteById(Long id) {
         log.info("Suppression de la maintenance avec l'ID : {}", id);
         if (!maintenanceRepository.existsById(id)) {
-            throw new IllegalArgumentException("Impossible de supprimer : maintenance introuvable avec l'ID : " + id);
+            throw new ResourceNotFoundException("Maintenance", id);
         }
         maintenanceRepository.deleteById(id);
+    }
+
+    private void validerMaintenance(Maintenance maintenance) {
+        if (maintenance.getDateDebut() == null || maintenance.getDateFin() == null) {
+            throw new IllegalArgumentException("Les dates de début et de fin de maintenance sont obligatoires");
+        }
+        if (maintenance.getDateFin().isBefore(maintenance.getDateDebut())) {
+            throw new IllegalArgumentException("La date de fin ne peut pas être antérieure à la date de début");
+        }
     }
 }

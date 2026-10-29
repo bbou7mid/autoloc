@@ -8,6 +8,7 @@ import tn.esprit.autoloc.domain.CategorieVehicule;
 import tn.esprit.autoloc.domain.Contrat;
 import tn.esprit.autoloc.domain.StatutVehicule;
 import tn.esprit.autoloc.domain.Vehicule;
+import tn.esprit.autoloc.exception.ResourceNotFoundException;
 import tn.esprit.autoloc.service.IContratService;
 import tn.esprit.autoloc.service.IVehiculeService;
 
@@ -32,47 +33,47 @@ class CrudOperationsTest {
         // 1. CREATE
         Vehicule v = new Vehicule(null, "999-TUN-9999", "Renault", "Clio 5",
                 CategorieVehicule.CITADINE, new BigDecimal("95.00"), StatutVehicule.DISPONIBLE);
-        Vehicule saved = vehiculeService.addVehicule(v);
+        Vehicule saved = vehiculeService.create(v);
         assertNotNull(saved.getIdVehicule());
 
         // 2. READ (findById & findAll)
-        Vehicule retrieved = vehiculeService.getVehiculeById(saved.getIdVehicule());
+        Vehicule retrieved = vehiculeService.findById(saved.getIdVehicule());
         assertEquals("Renault", retrieved.getMarque());
-        List<Vehicule> all = vehiculeService.getAllVehicules();
+        List<Vehicule> all = vehiculeService.findAll();
         assertFalse(all.isEmpty());
 
         // 3. UPDATE
         retrieved.setMarque("Renault Sport");
-        Vehicule updated = vehiculeService.updateVehicule(retrieved.getIdVehicule(), retrieved);
+        Vehicule updated = vehiculeService.update(retrieved.getIdVehicule(), retrieved);
         assertEquals("Renault Sport", updated.getMarque());
 
         // 4. DELETE
         Long idToDelete = saved.getIdVehicule();
-        vehiculeService.deleteVehicule(idToDelete);
-        assertThrows(IllegalArgumentException.class, () -> vehiculeService.getVehiculeById(idToDelete));
+        vehiculeService.deleteById(idToDelete);
+        assertThrows(ResourceNotFoundException.class, () -> vehiculeService.findById(idToDelete));
     }
 
     @Test
     void testContratCrudOperations() {
         // 1. CREATE
         Contrat c = new Contrat(null, LocalDate.now(), new BigDecimal("450.00"), true, null, null);
-        Contrat saved = contratService.addContrat(c);
+        Contrat saved = contratService.create(c);
         assertNotNull(saved.getIdContrat());
 
         // 2. READ (findById & findAll)
-        Contrat retrieved = contratService.getContratById(saved.getIdContrat());
+        Contrat retrieved = contratService.findById(saved.getIdContrat());
         assertEquals(new BigDecimal("450.00"), retrieved.getMontantTotal());
-        List<Contrat> all = contratService.getAllContrats();
+        List<Contrat> all = contratService.findAll();
         assertFalse(all.isEmpty());
 
         // 3. UPDATE
         retrieved.setMontantTotal(new BigDecimal("500.00"));
-        Contrat updated = contratService.updateContrat(retrieved.getIdContrat(), retrieved);
+        Contrat updated = contratService.update(retrieved.getIdContrat(), retrieved);
         assertEquals(new BigDecimal("500.00"), updated.getMontantTotal());
 
         // 4. DELETE
         Long idToDelete = saved.getIdContrat();
-        contratService.deleteContrat(idToDelete);
-        assertThrows(IllegalArgumentException.class, () -> contratService.getContratById(idToDelete));
+        contratService.deleteById(idToDelete);
+        assertThrows(ResourceNotFoundException.class, () -> contratService.findById(idToDelete));
     }
 }

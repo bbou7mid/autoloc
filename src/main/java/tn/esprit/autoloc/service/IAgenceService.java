@@ -4,9 +4,9 @@ import tn.esprit.autoloc.domain.Agence;
 import java.util.List;
 
 public interface IAgenceService {
-    List<Agence> getAllAgences();
-    Agence getAgenceById(Long id);
-    Agence addAgence(Agence agence);
-    Agence updateAgence(Long id, Agence agence);
-    void deleteAgence(Long id);
+    Agence create(Agence agence);
+    Agence findById(Long id);
+    List<Agence> findAll();
+    Agence update(Long id, Agence agence);
+    void deleteById(Long id);
 }

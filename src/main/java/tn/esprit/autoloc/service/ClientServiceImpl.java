@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tn.esprit.autoloc.domain.Client;
+import tn.esprit.autoloc.exception.ResourceNotFoundException;
 import tn.esprit.autoloc.repository.IClientRepository;
 
 import java.util.List;
@@ -18,45 +19,65 @@ public class ClientServiceImpl implements IClientService {
     private final IClientRepository clientRepository;
 
     @Override
+    public Client create(Client client) {
+        log.info("Création d'un nouveau client");
+        if (client.getIdClient() != null) {
+            throw new IllegalArgumentException("L'identifiant doit être null lors de la création d'un client");
+        }
+        validerClient(client);
+        return clientRepository.save(client);
+    }
+
+    @Override
     @Transactional(readOnly = true)
-    public List<Client> getAllClients() {
+    public Client findById(Long id) {
+        log.info("Recherche du client avec l'ID : {}", id);
+        return clientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Client", id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Client> findAll() {
         log.info("Récupération de tous les clients");
         return clientRepository.findAll();
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Client getClientById(Long id) {
-        log.info("Recherche du client avec l'ID : {}", id);
-        return clientRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Client introuvable avec l'ID : " + id));
-    }
-
-    @Override
-    public Client addClient(Client client) {
-        log.info("Ajout d'un nouveau client : {} {}", client.getNom(), client.getPrenom());
-        return clientRepository.save(client);
-    }
-
-    @Override
-    public Client updateClient(Long id, Client client) {
+    public Client update(Long id, Client client) {
         log.info("Mise à jour du client avec l'ID : {}", id);
-        Client existingClient = getClientById(id);
-        existingClient.setNom(client.getNom());
-        existingClient.setPrenom(client.getPrenom());
-        existingClient.setEmail(client.getEmail());
-        existingClient.setTelephone(client.getTelephone());
-        existingClient.setNumPermis(client.getNumPermis());
-        existingClient.setDateInscription(client.getDateInscription());
-        return clientRepository.save(existingClient);
+        validerClient(client);
+        Client existant = findById(id);
+        existant.setNom(client.getNom());
+        existant.setPrenom(client.getPrenom());
+        existant.setEmail(client.getEmail());
+        existant.setTelephone(client.getTelephone());
+        existant.setNumPermis(client.getNumPermis());
+        existant.setDateInscription(client.getDateInscription());
+        return clientRepository.save(existant);
     }
 
     @Override
-    public void deleteClient(Long id) {
+    public void deleteById(Long id) {
         log.info("Suppression du client avec l'ID : {}", id);
         if (!clientRepository.existsById(id)) {
-            throw new IllegalArgumentException("Impossible de supprimer : client introuvable avec l'ID : " + id);
+            throw new ResourceNotFoundException("Client", id);
         }
         clientRepository.deleteById(id);
+    }
+
+    private void validerClient(Client client) {
+        if (client.getNom() == null || client.getNom().isBlank()) {
+            throw new IllegalArgumentException("Le nom du client est obligatoire");
+        }
+        if (client.getPrenom() == null || client.getPrenom().isBlank()) {
+            throw new IllegalArgumentException("Le prénom du client est obligatoire");
+        }
+        if (client.getEmail() == null || client.getEmail().isBlank()) {
+            throw new IllegalArgumentException("L'adresse e-mail du client est obligatoire");
+        }
+        if (client.getNumPermis() == null || client.getNumPermis().isBlank()) {
+            throw new IllegalArgumentException("Le numéro de permis du client est obligatoire");
+        }
     }
 }

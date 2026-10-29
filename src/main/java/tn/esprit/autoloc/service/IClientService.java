@@ -4,9 +4,9 @@ import tn.esprit.autoloc.domain.Client;
 import java.util.List;
 
 public interface IClientService {
-    List<Client> getAllClients();
-    Client getClientById(Long id);
-    Client addClient(Client client);
-    Client updateClient(Long id, Client client);
-    void deleteClient(Long id);
+    Client create(Client client);
+    Client findById(Long id);
+    List<Client> findAll();
+    Client update(Long id, Client client);
+    void deleteById(Long id);
 }
